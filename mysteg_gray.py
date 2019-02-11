@@ -41,11 +41,13 @@ def steg_img(img,data):
     img_width,img_height= img.size
     spixels=img.load()
     bdata=tobits(data)
+    # print("messagein ",bdata)
     dpointer=0
     for h in range(int((img_width/2)-1)):
         for l in range(int((img_height/2)-1)):
             x,y=2*h,2*l
             omin=min(spixels[x,y],spixels[x+2,y],spixels[x,y+2],spixels[x+2,y+2])
+
             v1=spixels[x,y+1]-omin
             v2=spixels[x+1,y]-omin
             v3=spixels[x+1,y+1]-omin
@@ -55,18 +57,15 @@ def steg_img(img,data):
             else:
                 a1=int(math.log(v1,2))
             if a1>0:
-                if (dpointer+a1)<(len(bdata)-1):
-                    sum,m=0,1
+                if (dpointer+a1)<(len(bdata)):
+                    dpointer=dpointer+a1
+                    sum=0
+                    m=1
                     for i in range(a1):
-                        sum=sum+(m*bdata[(dpointer+a1)-i])
-                        m=m*2
+                        sum=sum+(m*bdata[(dpointer)-(i+1)])
+                        m=m*2 
                     spixels[x,y+1]=max(spixels[x,y], spixels[x,y+2])-sum
-                elif (dpointer)<len(bdata-1):
-                    sum,m=0,1
-                    for i in range(a1):
-                        sum=sum+(m*bdata[(dpointer+((len(bdata)-1)-dpointer))-i])
-                        m=m*2
-                    spixels[x,y+1]=max(spixels[x,y], spixels[x,y+2])-sum
+                    
                 else:
                     return img
             # a2
@@ -75,18 +74,15 @@ def steg_img(img,data):
             else:
                 a2=int(math.log(v2,2))
             if a2>0:
-                if (dpointer+a2)<(len(bdata)-1):
-                    sum,m=0,1
+                if (dpointer+a2)<(len(bdata)):
+                    dpointer=dpointer+a2
+                    sum=0
+                    m=1
                     for i in range(a2):
-                        sum=sum+(m*bdata[(dpointer+a2)-i])
-                        m=m*2
+                        sum=sum+(m*bdata[(dpointer)-(i+1)])
+                        m=m*2 
                     spixels[x+1,y]=max(spixels[x,y], spixels[x+2,y])-sum
-                elif (dpointer)<len(bdata-1):
-                    sum,m=0,1
-                    for i in range(a2):
-                        sum=sum+(m*bdata[(dpointer+((len(bdata)-1)-dpointer))-i])
-                        m=m*2
-                    spixels[x+1,y]=max(spixels[x,y], spixels[x+2,y])-sum
+                    
                 else:
                     return img
             # a3
@@ -95,20 +91,19 @@ def steg_img(img,data):
             else:
                 a3=int(math.log(v3,2))
             if a3>0:
-                if (dpointer+a3)<(len(bdata)-1):
-                    sum,m=0,1
+                if (dpointer+a3)<(len(bdata)):
+                    dpointer=dpointer+a3
+                    sum=0
+                    m=1
                     for i in range(a3):
-                        sum=sum+(m*bdata[(dpointer+a3)-i])
-                        m=m*2
+                        sum=sum+(m*bdata[(dpointer)-(i+1)])
+                        m=m*2 
                     spixels[x+1,y+1]=max(spixels[x+1,y], spixels[x,y+1])-sum
-                elif (dpointer)<len(bdata-1):
-                    sum,m=0,1
-                    for i in range(a3):
-                        sum=sum+(m*bdata[(dpointer+((len(bdata)-1)-dpointer))-i])
-                        m=m*2
-                    spixels[x+1,y+1]=max(spixels[x+1,y], spixels[x,y+1])-sum
+                    
                 else:
                     return img
+            
+            
     return img
 
 def encode():
@@ -122,10 +117,11 @@ def encode():
     img_o=img_i.resize((int(img_width/2),int(img_height/2)))
     # make Cover image
     img_c=cover_img(img_o)
-    img_c.save("coverimg.jpg") 
+    img_c.save("coverimg.png") 
     # make Stego image
     img_s=steg_img(img_c,data)
-    img_s.save("stegoimg.jpg")
+    img_s.save("stegoimg.png")
+    print("stegpimg.png created.")
 	
     
 def decode():
@@ -138,9 +134,11 @@ def decode():
         for l in range(int((img_height/2)-1)):
             x,y=2*h,2*l
             omin=min(spixels[x,y],spixels[x+2,y],spixels[x,y+2],spixels[x+2,y+2])
-            v1=abs(spixels[x,y+1]-omin)
-            v2=abs(spixels[x+1,y]-omin)
-            v3=abs(spixels[x+1,y+1]-omin)
+            omax=max(spixels[x,y],spixels[x+2,y],spixels[x,y+2],spixels[x+2,y+2])
+            
+            v1=int((omax+(spixels[x,y]+spixels[x,y+2])/2)/2)-omin
+            v2=int((omax+(spixels[x,y]+spixels[x+2,y])/2)/2)-omin
+            v3=int((int((omax+(spixels[x,y]+spixels[x,y+2])/2)/2)+int((omax+(spixels[x,y]+spixels[x+2,y])/2)/2))/2)-omin
             # a1
             if v1==0:
                 a1=0
@@ -150,38 +148,44 @@ def decode():
                 sum = max(spixels[x,y], spixels[x,y+2]) - spixels[x,y+1]
                 temp=[0,0,0,0,0,0,0,0]
                 for i in range(a1):
-                    temp[a1-i] = sum % 2
+                    temp[a1-(i+1)] = sum % 2
                     sum=int(sum/2)
                 for i in range(a1):
                     message.append(temp[i])
-            #a2
+            # a2
             if v2==0:
                 a2=0
             else:
-                print("v2 ",v2)
                 a2=int(math.log(v2,2))
             if a2>0:
-                sum = max(spixels[x,y], spixels[x+2,y]) - spixels[x,y+1]
+                sum = max(spixels[x,y], spixels[x+2,y]) - spixels[x+1,y]
                 temp=[0,0,0,0,0,0,0,0]
                 for i in range(a2):
-                    temp[a2-i] = sum % 2
+                    temp[a2-(i+1)] = sum % 2
                     sum=int(sum/2)
                 for i in range(a2):
                     message.append(temp[i])
-            #a3
+            # a3
             if v3==0:
                 a3=0
             else:
                 a3=int(math.log(v3,2))
             if a3>0:
-                sum = max(spixels[x+1,y], spixels[x,y+1]) - spixels[x,y+1]
+                sum = max(spixels[x+1,y], spixels[x,y+1]) - spixels[x+1,y+1]
                 temp=[0,0,0,0,0,0,0,0]
                 for i in range(a3):
-                    temp[a3-i] = sum % 2
+                    temp[a3-(i+1)] = sum % 2
                     sum=int(sum/2)
                 for i in range(a3):
                     message.append(temp[i])
-    print(frombits(message))
+            
+                        
+            if len(message)>128:
+                # print("messageout ",message)
+                print("steg data is: ",frombits(message))
+                return
+
+    # print(frombits(message))
             
 
 
